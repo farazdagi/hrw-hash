@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 license = "MIT"
 authors = ["Victor Farazdagi <farazdagi@gmail.com>"]
-description = "Minimalistic implementation of the Highest Random Weight (HRW) aka Rendezvous hashing algorithm"
+description = "A minimalistic implementation of the Highest Random Weight (HRW) aka Rendezvous hashing algorithm"
 homepage = "https://github.com/farazdagi/hrw-hash"
 repository = "https://github.com/farazdagi/hrw-hash"
 documentation = "https://docs.rs/hrw-hash"
@@ -13,3 +13,4 @@ keywords = ["consistent-hashing", "rendezvous", "hash"]
 categories = ["algorithms", "data-structures"]
 
 [dependencies]
+rapidhash = "1.4"
