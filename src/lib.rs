@@ -5,15 +5,14 @@ use {
     rapidhash::RapidHasher,
     std::{
         collections::HashMap,
-        fmt,
         hash::{Hash, Hasher},
     },
 };
 
 /// Target node which will be used for the hashing.
-pub trait Node: fmt::Debug + Hash + PartialEq + Eq {}
+pub trait Node: Hash + PartialEq + Eq {}
 
-impl<T> Node for T where T: fmt::Debug + Hash + PartialEq + Eq {}
+impl<T> Node for T where T: Hash + PartialEq + Eq {}
 
 /// Weighted node which will be used for the hashing.
 pub trait WeightedNode: Node {

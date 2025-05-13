@@ -14,19 +14,33 @@ The weighted variant of the HRW algorithm is implemented using Logarithmic Metho
 ["Weighted distributed hash tables"](https://dl.acm.org/doi/10.1145/1073970.1074008), by
 Schindelhauer and Schomaker (2005).
 
+To constrain the number of hashing operations, the implementation hashes nodes and keys only once
+(instead of `nodes * keys` hashes). This optimization idea is well presented in the
+["Rendezvous Hashing: The Path to Faster Hashes Calculation"](https://www.npiontko.pro/2024/12/23/computation-efficient-rendezvous-hashing)
+blog.
+
 ## Features
 
-- [ ] Absolutely minimalistic implementation with sane defaults.
+- [x] Absolutely minimalistic implementation with sane defaults.
 - [ ] Allow weighted nodes.
 - [ ] Allow massive number of nodes (`O(log(n))` lookup time, instead of `O(n)`).
-- [ ] Optimized for performance and memory usage. No wasted re-hashing.
+- [x] Optimized for performance and memory usage. No wasted re-hashing.
 
 ## Usage
 
-The core functionality is exposed via `HrwHash`:
+For non-weighted nodes:
 
 ``` rust
-// TBA
+use hrw_hash::HrwNodes;
+
+// Anything that implements `IntoIterator<Item = Hash + Eq>` can
+// be used as list of target nodes.
+let hrw = HrwNodes::new((0..10).map(|i| format!("node{}", i)));
+
+// For a given key, get the iterator to node references sorted by their weight.
+let shard_id = 0;
+let replicas: Vec<&String> = hrw.sorted(&shard_id).take(3).collect();
+assert_eq!(replicas, vec!["node1", "node6", "node4"]);
 
 ```
 

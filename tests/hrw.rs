@@ -2,15 +2,9 @@ use {hrw_hash::HrwNodes, std::collections::HashMap};
 
 #[test]
 fn hrw() {
-    let mut nodes = vec![];
-    for i in 0..10 {
-        nodes.push(format!("node{}", i));
-    }
-
-    let hrw = HrwNodes::new(nodes);
+    let hrw = HrwNodes::new((0..10).map(|i| format!("node{}", i)));
     let shard_id = 0;
     let replicas = hrw.sorted(&shard_id).take(3).collect::<Vec<_>>();
-    assert_eq!(replicas.len(), 3);
     assert_eq!(replicas, vec!["node1", "node6", "node4"]);
 }
 
@@ -55,7 +49,13 @@ fn fair_distribution() {
         expected_ratio: f64,
     }
 
-    for nodes_count in [16, 32, 64, 128, 256, 512] {
+    let counts = if cfg!(debug_assertions) {
+        vec![16, 32, 64]
+    } else {
+        vec![16, 32, 64, 128, 256, 512]
+    };
+
+    for nodes_count in counts {
         for nodes_per_shard in [1, 2, 3] {
             check_distribution(TestCase {
                 nodes_count,
