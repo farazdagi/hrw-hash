@@ -45,6 +45,52 @@ let replicas: Vec<&String> = hrw.sorted(&shard_id)
 assert_eq!(replicas, vec!["node1", "node6", "node4"]);
 ```
 
+For weighted nodes, which can have different capacities:
+
+``` rust
+use hrw_hash::{WeightedHrwNodes, WeightedNode};
+
+// Define node
+// (anything that implements `Hash + Eq` can be used as node).
+#[derive(Debug, PartialEq, Eq, Hash)]
+struct Node {
+    id: u64,
+    capacity: usize,
+}
+
+impl Node {
+    fn new(id: u64, capacity: usize) -> Self {
+        Self { id, capacity }
+    }
+}
+
+// Implement `WeightedNode` trait for the node.
+impl WeightedNode for Node {
+    fn capacity(&self) -> usize {
+        self.capacity
+    }
+}
+
+let mut nodes = Vec::new();
+for i in 0..100 {
+    // Regular nodes, have the same capacity.
+    nodes.push(Node::new(i, 1));
+}
+// Add some nodes with different capacities.
+nodes.push(Node::new(100, 50));
+nodes.push(Node::new(101, 20));
+
+let hrw = WeightedHrwNodes::new(nodes);
+
+// Nodes `100` and `101` have higher capacity, so they will be
+// selected more often -- even though there are hundred of other nodes.
+hrw.sorted(&"foobar1").next(); // Node 29
+hrw.sorted(&"foobar2").next(); // Node 78
+hrw.sorted(&"foobar3").next(); // Node 100
+hrw.sorted(&"foobar4").next(); // Node 101
+hrw.sorted(&"foobar5").next(); // Node 100
+```
+
 ## License
 
 MIT
