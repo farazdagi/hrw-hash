@@ -17,6 +17,7 @@ fn hrw() {
 #[test]
 fn fair_distribution() {
     fn expected_min_max_ratio(nodes_count: usize, replication_factor: usize) -> f64 {
+        // nodes, shards per node, min/max ratio
         let categories = vec![
             (16, 1, 0.95),
             (16, 2, 0.95),
@@ -47,6 +48,7 @@ fn fair_distribution() {
         unreachable!()
     }
 
+    #[derive(Debug)]
     struct TestCase {
         nodes_count: usize,
         nodes_per_shard: usize,
@@ -63,7 +65,7 @@ fn fair_distribution() {
         }
     }
 
-    fn check_distribution(config: TestCase) {
+    fn check_distribution(t: TestCase) {
         use std::hash::{Hash, Hasher};
 
         #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -81,7 +83,7 @@ fn fair_distribution() {
         // Key space sharded into parts: shard id is mapped to responsible replicas.
         let mut keyspace: HashMap<_, Vec<&Node>> = HashMap::new();
 
-        let nodes = (0..config.nodes_count as u16)
+        let nodes = (0..t.nodes_count as u16)
             .map(|i| Node {
                 id: i,
                 name: format!("node{}", i),
@@ -92,7 +94,7 @@ fn fair_distribution() {
         for shard_id in 0..u16::MAX {
             let proposed_replicas = hrw
                 .sorted(&shard_id)
-                .take(config.nodes_per_shard)
+                .take(t.nodes_per_shard)
                 .collect::<Vec<_>>();
             keyspace.insert(shard_id, proposed_replicas);
         }
@@ -106,36 +108,23 @@ fn fair_distribution() {
                 *count += 1;
             }
         }
-        let cnt_nodes = replicas_count.len();
+
         let cnt_shards = keyspace.len();
         let cnt_shards_from_replicas =
-            replicas_count.values().copied().sum::<usize>() / config.nodes_per_shard;
-        assert_eq!(
-            cnt_shards, cnt_shards_from_replicas,
-            "shards: {} != replicas: {}",
-            cnt_shards, cnt_shards_from_replicas
-        );
+            replicas_count.values().copied().sum::<usize>() / t.nodes_per_shard;
+        assert_eq!(cnt_shards, cnt_shards_from_replicas,);
+
         let min = replicas_count.values().copied().min().unwrap();
         let max = replicas_count.values().copied().max().unwrap();
-        let avg = replicas_count.values().copied().sum::<usize>() / replicas_count.len();
-        println!(
-            "\n{} shards distributed into {} nodes (RF: {})\nEach node having min: {}, max: {}, \
-             avg: {} shards in it",
-            cnt_shards, cnt_nodes, config.nodes_per_shard, min, max, avg
-        );
         let min_max_ratio = min as f64 / max as f64;
-        println!(
-            "ratio: {}, expected: {}",
-            min_max_ratio, config.expected_ratio
-        );
+        dbg!(&t, min_max_ratio);
         assert!(
-            min_max_ratio >= config.expected_ratio,
-            "distribution is not fair enough (min: {} max: {} ratio: {}
-        expected: {})",
+            min_max_ratio >= t.expected_ratio,
+            "distribution is not fair enough (min: {} max: {} ratio: {} expected: {})",
             min,
             max,
             min_max_ratio,
-            config.expected_ratio
+            t.expected_ratio
         );
     }
 }
