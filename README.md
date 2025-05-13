@@ -23,8 +23,17 @@ blog.
 
 - [x] Absolutely minimalistic implementation with sane defaults.
 - [x] Allow weighted nodes.
-- [ ] Allow massive number of nodes (`O(log(n))` lookup time, instead of `O(n)`).
 - [x] Optimized for performance and memory usage. No wasted re-hashing.
+- [ ] Allow massive number of nodes (`O(log(n))` lookup time, instead of `O(n)`).
+
+## Motivation
+
+Given an iterator of nodes (`IntoIterator<Item = Node>`) the aim is to produce sorted list of
+references to these nodes (`Iterator<Item = &Node>`) for any given key.
+
+This list serves as priority-sorted list of destination nodes for the key.
+
+Both weighted and non-weighted nodes are supported.
 
 ## Usage
 
