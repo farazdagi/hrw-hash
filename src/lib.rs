@@ -64,21 +64,13 @@ where
     N: Node,
     H: NodeHasher,
 {
-    pub fn with_hasher<I>(build_hasher: H, nodes: I) -> Self
+    pub fn with_hasher<I>(hasher: H, nodes: I) -> Self
     where
         I: IntoIterator<Item = N>,
     {
         Self {
-            nodes: nodes
-                .into_iter()
-                .map(|node| {
-                    // Pre-calculate node hashes (optimization described in
-                    // https://www.npiontko.pro/2024/12/23/computation-efficient-rendezvous-hashing)
-                    let hash = build_hasher.hash(&node);
-                    (node, hash)
-                })
-                .collect(),
-            hasher: build_hasher,
+            nodes: pre_hash(&hasher, nodes),
+            hasher,
         }
     }
 
@@ -104,4 +96,20 @@ fn merge(a: &u64, b: &u64) -> u64 {
     distance = distance.wrapping_mul(0xc4ce_b9fe_1a85_ec53);
     distance ^= distance >> 33;
     distance
+}
+
+#[inline]
+fn pre_hash<I, H, N>(hasher: &H, nodes: I) -> HashMap<N, u64>
+where
+    N: Node,
+    H: NodeHasher,
+    I: IntoIterator<Item = N>,
+{
+    nodes
+        .into_iter()
+        .map(|node| {
+            let hash = hasher.hash(&node);
+            (node, hash)
+        })
+        .collect()
 }

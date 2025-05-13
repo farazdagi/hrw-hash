@@ -37,11 +37,12 @@ use hrw_hash::HrwNodes;
 // be used as list of target nodes.
 let hrw = HrwNodes::new((0..10).map(|i| format!("node{}", i)));
 
-// For a given key, get the iterator to node references sorted by their weight.
+// For a given key, get the iterator to node references
+// (sorted by their weight).
 let shard_id = 0;
-let replicas: Vec<&String> = hrw.sorted(&shard_id).take(3).collect();
+let replicas: Vec<&String> = hrw.sorted(&shard_id)
+                                .take(3).collect();
 assert_eq!(replicas, vec!["node1", "node6", "node4"]);
-
 ```
 
 ## License

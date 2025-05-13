@@ -49,12 +49,12 @@ fn fair_distribution() {
         expected_ratio: f64,
     }
 
+    // Debug builds are really slow.
     let counts = if cfg!(debug_assertions) {
         vec![16, 32, 64]
     } else {
         vec![16, 32, 64, 128, 256, 512]
     };
-
     for nodes_count in counts {
         for nodes_per_shard in [1, 2, 3] {
             check_distribution(TestCase {
