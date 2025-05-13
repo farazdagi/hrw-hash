@@ -10,10 +10,12 @@ use {
     },
 };
 
+/// Target node which will be used for the hashing.
 pub trait Node: fmt::Debug + Hash + PartialEq + Eq {}
 
 impl<T> Node for T where T: fmt::Debug + Hash + PartialEq + Eq {}
 
+/// Weighted node which will be used for the hashing.
 pub trait WeightedNode: Node {
     /// Capacity of the node.
     ///
@@ -27,26 +29,29 @@ pub trait WeightedNode: Node {
     fn capacity(&self) -> usize;
 }
 
+/// Hasher used to hash both nodes and keys.
 pub trait NodeHasher {
-    fn hash_key<K: Hash>(&self, key: &K) -> u64;
+    fn hash<K: Hash>(&self, key: &K) -> u64;
 }
 
+/// Default hasher used in the library.
 pub struct DefaultNodeHasher;
 
 impl NodeHasher for DefaultNodeHasher {
-    fn hash_key<K: Hash>(&self, key: &K) -> u64 {
+    fn hash<K: Hash>(&self, key: &K) -> u64 {
         let mut hasher = RapidHasher::default();
         key.hash(&mut hasher);
         hasher.finish()
     }
 }
 
-pub struct Hrw<N, H = DefaultNodeHasher> {
+/// Nodes sorted using the HRW algorithm.
+pub struct HrwNodes<N, H = DefaultNodeHasher> {
     nodes: HashMap<N, u64>,
     hasher: H,
 }
 
-impl<N: Node> Hrw<N> {
+impl<N: Node> HrwNodes<N> {
     pub fn new<I>(nodes: I) -> Self
     where
         I: IntoIterator<Item = N>,
@@ -55,7 +60,7 @@ impl<N: Node> Hrw<N> {
     }
 }
 
-impl<N, H> Hrw<N, H>
+impl<N, H> HrwNodes<N, H>
 where
     N: Node,
     H: NodeHasher,
@@ -70,7 +75,7 @@ where
                 .map(|node| {
                     // Pre-calculate node hashes (optimization described in
                     // https://www.npiontko.pro/2024/12/23/computation-efficient-rendezvous-hashing)
-                    let hash = build_hasher.hash_key(&node);
+                    let hash = build_hasher.hash(&node);
                     (node, hash)
                 })
                 .collect(),
@@ -79,19 +84,15 @@ where
     }
 
     pub fn sorted<K: Hash>(&self, key: &K) -> impl Iterator<Item = &N> {
-        let key_hash = self.hasher.hash_key(key);
+        let key_hash = &self.hasher.hash(key);
         let mut nodes = self
             .nodes
             .iter()
-            .map(|(node, node_hash)| (merge(node_hash, &key_hash), node_hash, node))
+            .map(|(node, node_hash)| (merge(node_hash, key_hash), node))
             .collect::<Vec<_>>();
 
-        nodes.sort_unstable_by(|a, b| {
-            // Sort by the first element (the merged hash) in descending order
-            // and then by the second element (the node hash) in ascending order.
-            a.0.cmp(&b.0).reverse().then_with(|| a.1.cmp(&b.1))
-        });
-        nodes.into_iter().map(|(_, _, node)| node)
+        nodes.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+        nodes.into_iter().map(|(_, node)| node)
     }
 }
 

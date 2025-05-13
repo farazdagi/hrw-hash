@@ -1,4 +1,18 @@
-use {hrw_hash::Hrw, std::collections::HashMap};
+use {hrw_hash::HrwNodes, std::collections::HashMap};
+
+#[test]
+fn hrw() {
+    let mut nodes = vec![];
+    for i in 0..10 {
+        nodes.push(format!("node{}", i));
+    }
+
+    let hrw = HrwNodes::new(nodes);
+    let shard_id = 0;
+    let replicas = hrw.sorted(&shard_id).take(3).collect::<Vec<_>>();
+    assert_eq!(replicas.len(), 3);
+    assert_eq!(replicas, vec!["node1", "node6", "node4"]);
+}
 
 #[test]
 fn fair_distribution() {
@@ -36,6 +50,7 @@ fn fair_distribution() {
     struct TestCase {
         nodes_count: usize,
         nodes_per_shard: usize,
+        expected_ratio: f64,
     }
 
     for nodes_count in [16, 32, 64, 128, 256, 512] {
@@ -43,6 +58,7 @@ fn fair_distribution() {
             check_distribution(TestCase {
                 nodes_count,
                 nodes_per_shard,
+                expected_ratio: expected_min_max_ratio(nodes_count, nodes_per_shard),
             });
         }
     }
@@ -71,7 +87,7 @@ fn fair_distribution() {
                 name: format!("node{}", i),
             })
             .collect::<Vec<_>>();
-        let hrw = Hrw::new(nodes);
+        let hrw = HrwNodes::new(nodes);
 
         for shard_id in 0..u16::MAX {
             let proposed_replicas = hrw
@@ -108,16 +124,18 @@ fn fair_distribution() {
             cnt_shards, cnt_nodes, config.nodes_per_shard, min, max, avg
         );
         let min_max_ratio = min as f64 / max as f64;
-        let expected_ratio = expected_min_max_ratio(cnt_nodes, config.nodes_per_shard);
-        println!("ratio: {}, expected: {}", min_max_ratio, expected_ratio);
-        // assert!(
-        //     min_max_ratio >= expected_ratio,
-        //     "distribution is not fair enough (min: {} max: {} ratio: {}
-        // expected: {})",
-        //     min,
-        //     max,
-        //     min_max_ratio,
-        //     expected_ratio
-        // );
+        println!(
+            "ratio: {}, expected: {}",
+            min_max_ratio, config.expected_ratio
+        );
+        assert!(
+            min_max_ratio >= config.expected_ratio,
+            "distribution is not fair enough (min: {} max: {} ratio: {}
+        expected: {})",
+            min,
+            max,
+            min_max_ratio,
+            config.expected_ratio
+        );
     }
 }
