@@ -22,7 +22,7 @@ blog.
 ## Features
 
 - [x] Absolutely minimalistic implementation with sane defaults.
-- [ ] Allow weighted nodes.
+- [x] Allow weighted nodes.
 - [ ] Allow massive number of nodes (`O(log(n))` lookup time, instead of `O(n)`).
 - [x] Optimized for performance and memory usage. No wasted re-hashing.
 
@@ -76,19 +76,19 @@ for i in 0..100 {
     // Regular nodes, have the same capacity.
     nodes.push(Node::new(i, 1));
 }
-// Add some nodes with different capacities.
+// Add some nodes with higher capacities.
 nodes.push(Node::new(100, 50));
 nodes.push(Node::new(101, 20));
 
 let hrw = WeightedHrwNodes::new(nodes);
 
 // Nodes `100` and `101` have higher capacity, so they will be
-// selected more often -- even though there are hundred of other nodes.
-hrw.sorted(&"foobar1").next(); // Node 29
-hrw.sorted(&"foobar2").next(); // Node 78
-hrw.sorted(&"foobar3").next(); // Node 100
-hrw.sorted(&"foobar4").next(); // Node 101
-hrw.sorted(&"foobar5").next(); // Node 100
+// selected more often -- even though there are many other nodes.
+assert_eq!(hrw.sorted(&"foobar1").next(), Some(&Node::new(29, 1)));
+assert_eq!(hrw.sorted(&"foobar2").next(), Some(&Node::new(78, 1)));
+assert_eq!(hrw.sorted(&"foobar3").next(), Some(&Node::new(100, 50)));
+assert_eq!(hrw.sorted(&"foobar4").next(), Some(&Node::new(101, 20)));
+assert_eq!(hrw.sorted(&"foobar5").next(), Some(&Node::new(100, 50)));
 ```
 
 ## License
