@@ -10,9 +10,9 @@ use {
     },
 };
 
-pub trait Node: fmt::Debug + Hash + PartialEq + Eq + PartialOrd + Ord {}
+pub trait Node: fmt::Debug + Hash + PartialEq + Eq {}
 
-impl<T> Node for T where T: fmt::Debug + Hash + PartialEq + Eq + PartialOrd + Ord {}
+impl<T> Node for T where T: fmt::Debug + Hash + PartialEq + Eq {}
 
 pub trait WeightedNode: Node {
     /// Capacity of the node.
@@ -83,11 +83,15 @@ where
         let mut nodes = self
             .nodes
             .iter()
-            .map(|(node, node_hash)| (merge(node_hash, &key_hash), node))
+            .map(|(node, node_hash)| (merge(node_hash, &key_hash), node_hash, node))
             .collect::<Vec<_>>();
 
-        nodes.sort_unstable();
-        nodes.into_iter().map(|(_, node)| node)
+        nodes.sort_unstable_by(|a, b| {
+            // Sort by the first element (the merged hash) in descending order
+            // and then by the second element (the node hash) in ascending order.
+            a.0.cmp(&b.0).reverse().then_with(|| a.1.cmp(&b.1))
+        });
+        nodes.into_iter().map(|(_, _, node)| node)
     }
 }
 
