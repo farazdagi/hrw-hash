@@ -24,7 +24,6 @@ blog.
 - [x] Absolutely minimalistic implementation with sane defaults.
 - [x] Allow weighted nodes.
 - [x] Optimized for performance and memory usage. No wasted re-hashing.
-- [ ] Allow massive number of nodes (`O(log(n))` lookup time, instead of `O(n)`).
 
 ## Motivation
 
