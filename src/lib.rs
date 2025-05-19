@@ -3,23 +3,16 @@
 
 mod hasher;
 mod hrw;
-mod weighted_hrw;
 
 use std::hash::Hash;
 
 pub use {
     hasher::{DefaultNodeHasher, NodeHasher},
     hrw::HrwNodes,
-    weighted_hrw::WeightedHrwNodes,
 };
 
 /// Target node which will be used for the hashing.
-pub trait Node: Hash + PartialEq + Eq {}
-
-impl<T> Node for T where T: Hash + PartialEq + Eq {}
-
-/// Weighted node which will be used for the hashing.
-pub trait WeightedNode: Node {
+pub trait HrwNode: Hash + PartialEq + Eq {
     /// Capacity of the node.
     ///
     /// The capacity
@@ -29,5 +22,7 @@ pub trait WeightedNode: Node {
     /// Capacities of all nodes are summed up to determine the total capacity of
     /// the keyspace. The relative capacity of the node is then ratio of the
     /// node's capacity to the total capacity of the keyspace.
-    fn capacity(&self) -> usize;
+    fn capacity(&self) -> usize {
+        1
+    }
 }

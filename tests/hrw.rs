@@ -1,11 +1,43 @@
-use {hrw_hash::HrwNodes, std::collections::HashMap};
+use {
+    hrw_hash::{HrwNode, HrwNodes},
+    std::{
+        collections::HashMap,
+        hash::{Hash, Hasher},
+    },
+};
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct Node {
+    id: u16,
+    name: String,
+}
+
+impl Hash for Node {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
+impl HrwNode for Node {}
+
+impl Node {
+    fn new(id: u16) -> Self {
+        Self {
+            id,
+            name: format!("node{}", id),
+        }
+    }
+}
 
 #[test]
 fn hrw() {
-    let hrw = HrwNodes::new((0..10).map(|i| format!("node{}", i)));
-    let shard_id = 0;
+    let hrw = HrwNodes::new((0..10).map(|i| Node {
+        id: i,
+        name: format!("node{}", i),
+    }));
+    let shard_id = 42;
     let replicas = hrw.sorted(&shard_id).take(3).collect::<Vec<_>>();
-    assert_eq!(replicas, vec!["node1", "node6", "node4"]);
+    assert_eq!(replicas, vec![&Node::new(4), &Node::new(5), &Node::new(6)]);
 }
 
 #[test]
@@ -22,15 +54,15 @@ fn fair_distribution() {
             (64, 1, 0.85),
             (64, 2, 0.88),
             (64, 3, 0.92),
-            (128, 1, 0.79),
+            (128, 1, 0.77),
             (128, 2, 0.83),
             (128, 3, 0.84),
-            (256, 1, 0.71),
-            (256, 2, 0.80),
-            (256, 3, 0.84),
+            (256, 1, 0.69),
+            (256, 2, 0.76),
+            (256, 3, 0.82),
             (512, 1, 0.55),
-            (512, 2, 0.66),
-            (512, 3, 0.72),
+            (512, 2, 0.69),
+            (512, 3, 0.74),
         ];
 
         for category in categories {
@@ -66,20 +98,6 @@ fn fair_distribution() {
     }
 
     fn check_distribution(t: TestCase) {
-        use std::hash::{Hash, Hasher};
-
-        #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
-        struct Node {
-            id: u16,
-            name: String,
-        }
-
-        impl Hash for Node {
-            fn hash<H: Hasher>(&self, state: &mut H) {
-                self.id.hash(state);
-            }
-        }
-
         // Key space sharded into parts: shard id is mapped to responsible replicas.
         let mut keyspace: HashMap<_, Vec<&Node>> = HashMap::new();
 
@@ -125,6 +143,67 @@ fn fair_distribution() {
             max,
             min_max_ratio,
             t.expected_ratio
+        );
+    }
+}
+
+#[test]
+fn weighted_distribution() {
+    #[derive(PartialEq, Eq, Hash)]
+    struct Node {
+        id: u64,
+        capacity: usize,
+    }
+
+    impl Node {
+        fn new(id: u64, capacity: usize) -> Self {
+            Self { id, capacity }
+        }
+    }
+
+    impl HrwNode for Node {
+        fn capacity(&self) -> usize {
+            self.capacity
+        }
+    }
+
+    // 3 nodes with total capacity of 50.
+    let mut nodes = vec![Node::new(1, 5), Node::new(2, 15), Node::new(3, 30)];
+    // 50 nodes with total capacity of 50.
+    for id in 4..54 {
+        nodes.push(Node::new(id, 1));
+    }
+
+    let nodes = HrwNodes::new(nodes);
+
+    let mut counts = HashMap::new();
+    for key in 0..u16::MAX {
+        let proposed_replica = nodes.sorted(&key).take(1).collect::<Vec<_>>()[0];
+        counts
+            .entry(proposed_replica.id)
+            .and_modify(|count| *count += 1)
+            .or_insert(1);
+    }
+
+    // On perfectly balanced distribution, each node should be chosen at least `k`
+    // times, i.e. one share of capacity gives node `k` occurrences.
+    let k = u16::MAX / 100;
+    for id in 1u64..54 {
+        let count = *counts.get(&id).unwrap_or(&0);
+        let k = match id {
+            1 => k * 5,
+            2 => k * 15,
+            3 => k * 30,
+            _ => k * 1,
+        };
+        // make sure that count diffs no more than 10% of the expected value
+        let diff = (count as f64 - k as f64) / k as f64;
+        assert!(
+            diff.abs() < 0.1,
+            "Node {}: expected {}, got {}",
+            id,
+            k,
+            count
         );
     }
 }

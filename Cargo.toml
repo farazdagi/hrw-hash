@@ -1,6 +1,6 @@
 [package]
 name = "hrw-hash"
-version = "0.2.4"
+version = "1.0.0"
 edition = "2024"
 license = "MIT"
 authors = ["Victor Farazdagi <farazdagi@gmail.com>"]
@@ -9,7 +9,7 @@ homepage = "https://github.com/farazdagi/hrw-hash"
 repository = "https://github.com/farazdagi/hrw-hash"
 documentation = "https://docs.rs/hrw-hash"
 readme = "README.md"
-keywords = ["consistent-hashing", "rendezvous", "hash", "hrw"]
+keywords = ["consistent-hashing", "rendezvous", "hash", "hrw", "distributed"]
 categories = ["algorithms", "data-structures"]
 
 [dependencies]

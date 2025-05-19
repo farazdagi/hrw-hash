@@ -27,10 +27,11 @@ blog.
 
 ## Motivation
 
-Given an iterator of nodes (`IntoIterator<Item = Node>`) the aim is to produce sorted list of
+Given list of nodes (as `IntoIterator<Item = Node>`) the aim is to produce *sorted* list of
 references to these nodes (`Iterator<Item = &Node>`) for any given key.
 
-This list serves as priority-sorted list of destination nodes for the key.
+This sorted list serves as priority-based set of destination nodes for the key. With the first node
+being the primary replica, the second one being the secondary replica, and so on.
 
 Both weighted and non-weighted nodes are supported.
 
@@ -39,64 +40,85 @@ Both weighted and non-weighted nodes are supported.
 For non-weighted nodes:
 
 ``` rust
-use hrw_hash::HrwNodes;
+use hrw_hash::{HrwNodes, HrwNode};
 
-// Anything that implements `IntoIterator<Item = Hash + Eq>` can
-// be used as list of target nodes.
-let hrw = HrwNodes::new((0..10).map(|i| format!("node{}", i)));
+// Anything that implements `Hash + Eq` can be used as node.
+#[derive(Debug, PartialEq, Eq, Hash)]
+struct MyNode(u64);
 
-// For a given key, get the iterator to node references
-// (sorted by their weight).
-let shard_id = 0;
-let replicas: Vec<&String> = hrw.sorted(&shard_id)
-                                .take(3).collect();
-assert_eq!(replicas, vec!["node1", "node6", "node4"]);
+// Mark the node as eligible for HRW hashing.
+impl HrwNode for MyNode {}
+
+// Create a new HRW instance with the list of nodes.
+let nodes: Vec<MyNode> = (0..10).map(|i| MyNode(i)).collect();
+let hrw = HrwNodes::new(nodes);
+
+// For a given key, get list of nodes sorted by their priority.
+let key = 42;
+let replicas: Vec<&MyNode> = hrw.sorted(&key).take(3).collect();
+assert_eq!(replicas, vec![&MyNode(6), &MyNode(5), &MyNode(2)]);
 ```
 
-For weighted nodes, which can have different capacities:
+For weighted nodes, which can have different capacities, the only difference is that you have to
+implement the `capacity()` method of `HrwNode` trait:
 
 ``` rust
-use hrw_hash::{WeightedHrwNodes, WeightedNode};
+use hrw_hash::{HrwNode, HrwNodes};
 
-// Define node
-// (anything that implements `Hash + Eq` can be used as node).
+// Anything that implements `Hash + Eq` can be used as node.
 #[derive(Debug, PartialEq, Eq, Hash)]
-struct Node {
+struct MyNode {
     id: u64,
     capacity: usize,
 }
 
-impl Node {
-    fn new(id: u64, capacity: usize) -> Self {
-        Self { id, capacity }
+// Mark the node as eligible for HRW hashing.
+// The `capacity()` method returns the capacity of the node.
+impl HrwNode for MyNode {
+    fn capacity(&self) -> usize {
+        self.capacity
     }
 }
 
-// Implement `WeightedNode` trait for the node.
-impl WeightedNode for Node {
-    fn capacity(&self) -> usize {
-        self.capacity
+impl MyNode {
+    fn new(id: u64, capacity: usize) -> Self {
+        Self { id, capacity }
     }
 }
 
 let mut nodes = Vec::new();
 for i in 0..100 {
     // Regular nodes, have the same capacity.
-    nodes.push(Node::new(i, 1));
+    nodes.push(MyNode::new(i, 1));
 }
 // Add some nodes with higher capacities.
-nodes.push(Node::new(100, 50));
-nodes.push(Node::new(101, 20));
+nodes.push(MyNode::new(100, 50));
+nodes.push(MyNode::new(101, 20));
 
-let hrw = WeightedHrwNodes::new(nodes);
+let hrw = HrwNodes::new(nodes);
 
 // Nodes `100` and `101` have higher capacity, so they will be
 // selected more often -- even though there are many other nodes.
-assert_eq!(hrw.sorted(&"foobar1").next(), Some(&Node::new(29, 1)));
-assert_eq!(hrw.sorted(&"foobar2").next(), Some(&Node::new(78, 1)));
-assert_eq!(hrw.sorted(&"foobar3").next(), Some(&Node::new(100, 50)));
-assert_eq!(hrw.sorted(&"foobar4").next(), Some(&Node::new(101, 20)));
-assert_eq!(hrw.sorted(&"foobar5").next(), Some(&Node::new(100, 50)));
+assert_eq!(
+    hrw.sorted(&"foobar1").next(), // primary replica for the key
+    Some(&MyNode::new(29, 1))      // one of the regular nodes
+);
+assert_eq!(
+    hrw.sorted(&"foobar2").next(),
+    Some(&MyNode::new(78, 1))      // one of the regular nodes
+);
+assert_eq!(
+    hrw.sorted(&"foobar3").next(),
+    Some(&MyNode::new(100, 50))    // the higher capacity node
+);
+assert_eq!(
+    hrw.sorted(&"foobar4").next(), 
+    Some(&MyNode::new(101, 20))    // the higher capacity node
+);
+assert_eq!(
+    hrw.sorted(&"foobar5").next(), 
+    Some(&MyNode::new(100, 50))    // the higher capacity node
+);
 ```
 
 ## License
