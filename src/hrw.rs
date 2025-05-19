@@ -11,6 +11,7 @@ pub struct HrwNodes<N, H = DefaultNodeHasher> {
 }
 
 impl<N: HrwNode> HrwNodes<N> {
+    /// Create a new instance with the default hasher.
     pub fn new<I>(nodes: I) -> Self
     where
         I: IntoIterator<Item = N>,
@@ -24,6 +25,7 @@ where
     N: HrwNode,
     H: NodeHasher,
 {
+    /// Create a new instance with a custom hasher.
     pub fn with_hasher<I>(hasher: H, nodes: I) -> Self
     where
         I: IntoIterator<Item = N>,
@@ -45,6 +47,7 @@ where
         }
     }
 
+    /// Sort the nodes using the HRW algorithm.
     pub fn sorted<K: Hash>(&self, key: &K) -> impl Iterator<Item = &N> {
         let key_hash = &self.hasher.hash(key);
         let mut nodes = self

@@ -207,3 +207,19 @@ fn weighted_distribution() {
         );
     }
 }
+
+#[test]
+fn blanket_implementation() {
+    let hrw = HrwNodes::new((0..10).map(|i| i));
+    let replicas = hrw.sorted(&42).take(3).collect::<Vec<_>>();
+    assert_eq!(replicas, vec![&9, &1, &2]);
+
+    let hrw = HrwNodes::new((0..10).map(|i| format!("node{}", i)));
+    let replicas = hrw.sorted(&42).take(3).collect::<Vec<_>>();
+    assert_eq!(replicas, vec![&"node6", &"node0", &"node7"]);
+
+    let nodes: Vec<u16> = (0..10).map(|i| i).collect();
+    let hrw = HrwNodes::new(nodes);
+    let replicas = hrw.sorted(&42).take(3).collect::<Vec<_>>();
+    assert_eq!(replicas, vec![&4, & 5, &6]);
+}

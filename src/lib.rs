@@ -26,3 +26,26 @@ pub trait HrwNode: Hash + PartialEq + Eq {
         1
     }
 }
+
+macro_rules! impl_hrwnode {
+    ($($t:ty),*) => {
+        $(impl HrwNode for $t {})*
+    };
+}
+
+impl_hrwnode!(
+    u8,
+    u16,
+    u32,
+    u64,
+    usize,
+    i8,
+    i16,
+    i32,
+    i64,
+    isize,
+    char,
+    String,
+    &str,
+    &[u8]
+);

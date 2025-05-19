@@ -112,13 +112,32 @@ assert_eq!(
     Some(&MyNode::new(100, 50))    // the higher capacity node
 );
 assert_eq!(
-    hrw.sorted(&"foobar4").next(), 
+    hrw.sorted(&"foobar4").next(),
     Some(&MyNode::new(101, 20))    // the higher capacity node
 );
 assert_eq!(
-    hrw.sorted(&"foobar5").next(), 
+    hrw.sorted(&"foobar5").next(),
     Some(&MyNode::new(100, 50))    // the higher capacity node
 );
+```
+
+Note that primitive types can be used as nodes too. This is done to allow passing node indexes or
+IDs directly.
+
+``` rust
+use hrw_hash::{HrwNode, HrwNodes};
+
+// String as node
+let nodes: Vec<String> = (0..10).map(|i| format!("node{}", i)).collect();
+let hrw = HrwNodes::new(nodes);
+let replicas = hrw.sorted(&42).take(3).collect::<Vec<_>>();
+assert_eq!(replicas, vec![&"node6", &"node0", &"node7"]);
+
+// u16 as node
+let nodes: Vec<u16> = (0..10).map(|i| i).collect();
+let hrw = HrwNodes::new(nodes);
+let replicas = hrw.sorted(&42).take(3).collect::<Vec<_>>();
+assert_eq!(replicas, vec![&4, &5, &6]);
 ```
 
 ## License
