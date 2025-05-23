@@ -69,13 +69,21 @@ where
 /// Score as positive floating point number.
 ///
 /// Makes it easier to sort the nodes by score.
-#[derive(Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, PartialEq)]
 struct Score(f64);
 
 impl Eq for Score {}
 
+impl cmp::PartialOrd for Score {
+    fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
 impl cmp::Ord for Score {
     fn cmp(&self, other: &Self) -> cmp::Ordering {
-        self.0.partial_cmp(&other.0).unwrap()
+        self.0
+            .partial_cmp(&other.0)
+            .unwrap_or_else(|| panic!("Cannot compare scores: {} and {}", self.0, other.0))
     }
 }
