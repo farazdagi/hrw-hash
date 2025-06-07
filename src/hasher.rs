@@ -29,4 +29,3 @@ pub(crate) fn merge(a: &u64, b: &u64) -> u64 {
     distance ^= distance >> 33;
     distance
 }
-

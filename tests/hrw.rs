@@ -221,5 +221,5 @@ fn blanket_implementation() {
     let nodes: Vec<u16> = (0..10).map(|i| i).collect();
     let hrw = HrwNodes::new(nodes);
     let replicas = hrw.sorted(&42).take(3).collect::<Vec<_>>();
-    assert_eq!(replicas, vec![&4, & 5, &6]);
+    assert_eq!(replicas, vec![&4, &5, &6]);
 }
