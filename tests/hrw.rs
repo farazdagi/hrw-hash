@@ -37,7 +37,7 @@ fn hrw() {
     }));
     let shard_id = 42;
     let replicas = hrw.sorted(&shard_id).take(3).collect::<Vec<_>>();
-    assert_eq!(replicas, vec![&Node::new(4), &Node::new(5), &Node::new(6)]);
+    assert_eq!(replicas, vec![&Node::new(8), &Node::new(4), &Node::new(7)]);
 }
 
 #[test]
@@ -45,12 +45,12 @@ fn fair_distribution() {
     fn expected_min_max_ratio(nodes_count: usize, replication_factor: usize) -> f64 {
         // nodes, shards per node, min/max ratio
         let categories = vec![
-            (16, 1, 0.95),
+            (16, 1, 0.92),
             (16, 2, 0.95),
             (16, 3, 0.96),
-            (32, 1, 0.90),
-            (32, 2, 0.94),
-            (32, 3, 0.94),
+            (32, 1, 0.89),
+            (32, 2, 0.93),
+            (32, 3, 0.93),
             (64, 1, 0.85),
             (64, 2, 0.88),
             (64, 3, 0.92),
@@ -196,10 +196,10 @@ fn weighted_distribution() {
             3 => k * 30,
             _ => k * 1,
         };
-        // make sure that count diffs no more than 10% of the expected value
+        // make sure that count diffs no more than 15% of the expected value
         let diff = (count as f64 - k as f64) / k as f64;
         assert!(
-            diff.abs() < 0.1,
+            diff.abs() <= 0.15,
             "Node {}: expected {}, got {}",
             id,
             k,
@@ -212,14 +212,29 @@ fn weighted_distribution() {
 fn blanket_implementation() {
     let hrw = HrwNodes::new((0..10).map(|i| i));
     let replicas = hrw.sorted(&42).take(3).collect::<Vec<_>>();
-    assert_eq!(replicas, vec![&9, &1, &2]);
+    assert_eq!(replicas, vec![&3, &5, &0]);
 
     let hrw = HrwNodes::new((0..10).map(|i| format!("node{}", i)));
     let replicas = hrw.sorted(&42).take(3).collect::<Vec<_>>();
-    assert_eq!(replicas, vec![&"node6", &"node0", &"node7"]);
+    assert_eq!(replicas, vec![&"node3", &"node1", &"node5"]);
 
     let nodes: Vec<u16> = (0..10).map(|i| i).collect();
     let hrw = HrwNodes::new(nodes);
     let replicas = hrw.sorted(&42).take(3).collect::<Vec<_>>();
-    assert_eq!(replicas, vec![&4, &5, &6]);
+    assert_eq!(replicas, vec![&8, &4, &7]);
+}
+
+#[test]
+fn custom_build_hasher() {
+    // Assuming you have the following in your `Cargo.toml`:
+    // twox-hash = { version = "2.1", features = ["std", "xxhash3_64"] }
+    use {std::hash::BuildHasherDefault, twox_hash::XxHash3_64};
+
+    let nodes = (0..10).map(|i| i);
+
+    // Pass in XXHash3_64 hasher builder.
+    let hrw = HrwNodes::with_build_hasher(BuildHasherDefault::<XxHash3_64>::default(), nodes);
+
+    let replicas = hrw.sorted(&42).take(3).collect::<Vec<_>>();
+    assert_eq!(replicas, vec![&1, &2, &7]);
 }

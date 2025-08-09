@@ -7,7 +7,7 @@ mod hrw;
 use std::hash::Hash;
 
 pub use {
-    hasher::{DefaultNodeHasher, NodeHasher},
+    hasher::{DefaultHasher},
     hrw::HrwNodes,
 };
 

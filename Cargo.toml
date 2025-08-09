@@ -1,6 +1,6 @@
 [package]
 name = "hrw-hash"
-version = "1.0.4"
+version = "2.0.0"
 edition = "2024"
 license = "MIT"
 authors = ["Victor Farazdagi <farazdagi@gmail.com>"]
@@ -13,4 +13,7 @@ keywords = ["consistent-hashing", "rendezvous", "hash", "hrw", "distributed"]
 categories = ["algorithms", "data-structures"]
 
 [dependencies]
-rapidhash = "1.4"
+rapidhash = "3.0"
+
+[dev-dependencies]
+twox-hash = { version = "2.1", features = ["std", "xxhash3_64"] }

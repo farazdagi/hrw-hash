@@ -1,12 +1,16 @@
 use {
-    crate::{DefaultNodeHasher, HrwNode, NodeHasher, hasher::merge},
-    std::{cmp, collections::HashMap, hash::Hash},
+    crate::{DefaultHasher, HrwNode, hasher::merge},
+    std::{
+        cmp,
+        collections::HashMap,
+        hash::{BuildHasher, BuildHasherDefault, Hash},
+    },
 };
 
 /// Nodes sorted using the HRW algorithm.
-pub struct HrwNodes<N, H = DefaultNodeHasher> {
+pub struct HrwNodes<N, H = BuildHasherDefault<DefaultHasher>> {
     nodes: HashMap<N, u64>,
-    hasher: H,
+    build_hasher: H,
     total_capacity: usize,
 }
 
@@ -16,17 +20,17 @@ impl<N: HrwNode> HrwNodes<N> {
     where
         I: IntoIterator<Item = N>,
     {
-        Self::with_hasher(DefaultNodeHasher {}, nodes)
+        Self::with_build_hasher(BuildHasherDefault::default(), nodes)
     }
 }
 
 impl<N, H> HrwNodes<N, H>
 where
     N: HrwNode,
-    H: NodeHasher,
+    H: BuildHasher,
 {
     /// Create a new instance with a custom hasher.
-    pub fn with_hasher<I>(hasher: H, nodes: I) -> Self
+    pub fn with_build_hasher<I>(build_hasher: H, nodes: I) -> Self
     where
         I: IntoIterator<Item = N>,
     {
@@ -34,7 +38,7 @@ where
         let nodes = nodes
             .into_iter()
             .map(|node| {
-                let hash = hasher.hash(&node);
+                let hash = build_hasher.hash_one(&node);
                 total_capacity += node.capacity();
                 (node, hash)
             })
@@ -42,14 +46,14 @@ where
 
         Self {
             nodes,
-            hasher,
+            build_hasher,
             total_capacity,
         }
     }
 
     /// Sort the nodes using the HRW algorithm.
     pub fn sorted<K: Hash>(&self, key: &K) -> impl Iterator<Item = &N> {
-        let key_hash = &self.hasher.hash(key);
+        let key_hash = &self.build_hasher.hash_one(key);
         let mut nodes = self
             .nodes
             .iter()

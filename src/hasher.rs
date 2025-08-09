@@ -1,21 +1,22 @@
-use {
-    rapidhash::RapidHasher,
-    std::hash::{Hash, Hasher},
-};
-
-/// Hasher used to hash both nodes and keys.
-pub trait NodeHasher {
-    fn hash<K: Hash>(&self, key: &K) -> u64;
-}
+use {rapidhash::v3::rapidhash_v3, std::hash::Hasher};
 
 /// Default hasher used in the library.
-pub struct DefaultNodeHasher;
+///
+/// Relies on the `rapidhash`, which is a portable and fast hashing.
+/// Additionally, it is designed to stay stable across different platforms, Rust
+/// versions, and package releases --- thus, it is safe to assume that the
+/// key-hash pairs will not change over time, and the same key will always
+/// hash to the same value.
+#[derive(Default)]
+pub struct DefaultHasher(Vec<u8>);
 
-impl NodeHasher for DefaultNodeHasher {
-    fn hash<K: Hash>(&self, key: &K) -> u64 {
-        let mut hasher = RapidHasher::default();
-        key.hash(&mut hasher);
-        hasher.finish()
+impl Hasher for DefaultHasher {
+    fn write(&mut self, bytes: &[u8]) {
+        self.0.extend_from_slice(bytes);
+    }
+
+    fn finish(&self) -> u64 {
+        rapidhash_v3(&self.0)
     }
 }
 

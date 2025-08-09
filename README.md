@@ -37,6 +37,8 @@ Both weighted and non-weighted nodes are supported.
 
 ## Usage
 
+### Non-weighted nodes
+
 For non-weighted nodes:
 
 ``` rust
@@ -56,8 +58,10 @@ let hrw = HrwNodes::new(nodes);
 // For a given key, get list of nodes sorted by their priority.
 let key = 42;
 let replicas: Vec<&MyNode> = hrw.sorted(&key).take(3).collect();
-assert_eq!(replicas, vec![&MyNode(6), &MyNode(5), &MyNode(2)]);
+assert_eq!(replicas, vec![&MyNode(4), &MyNode(7), &MyNode(0)]);
 ```
+
+### Weighted nodes
 
 For weighted nodes, which can have different capacities, the only difference is that you have to
 implement the `capacity()` method of `HrwNode` trait:
@@ -97,32 +101,43 @@ nodes.push(MyNode::new(101, 20));
 
 let hrw = HrwNodes::new(nodes);
 
+println!("{:?}", hrw.sorted(&"key1").take(3).collect::<Vec<_>>());
+println!("{:?}", hrw.sorted(&"key2").take(3).collect::<Vec<_>>());
+println!("{:?}", hrw.sorted(&"key3").take(3).collect::<Vec<_>>());
+println!("{:?}", hrw.sorted(&"key4").take(3).collect::<Vec<_>>());
+println!("{:?}", hrw.sorted(&"key5").take(3).collect::<Vec<_>>());
+
 // Nodes `100` and `101` have higher capacity, so they will be
 // selected more often -- even though there are many other nodes.
 assert_eq!(
-    hrw.sorted(&"foobar1").next(), // primary replica for the key
-    Some(&MyNode::new(29, 1))      // one of the regular nodes
+    hrw.sorted(&"key1").next(),  // primary replica for the key
+    Some(&MyNode::new(33, 1))    // one of the regular nodes
 );
 assert_eq!(
-    hrw.sorted(&"foobar2").next(),
-    Some(&MyNode::new(78, 1))      // one of the regular nodes
+    hrw.sorted(&"key2").next(),
+    Some(&MyNode::new(100, 50))  // higher capacity node
 );
 assert_eq!(
-    hrw.sorted(&"foobar3").next(),
-    Some(&MyNode::new(100, 50))    // the higher capacity node
+    hrw.sorted(&"key3").next(),
+    Some(&MyNode::new(100, 50))  // higher capacity node
 );
 assert_eq!(
-    hrw.sorted(&"foobar4").next(),
-    Some(&MyNode::new(101, 20))    // the higher capacity node
+    hrw.sorted(&"key4").next(),
+    Some(&MyNode::new(101, 20))  // higher capacity node
 );
 assert_eq!(
-    hrw.sorted(&"foobar5").next(),
-    Some(&MyNode::new(100, 50))    // the higher capacity node
+    hrw.sorted(&"key5").next(),
+    Some(&MyNode::new(101, 20))  // higher capacity node
 );
 ```
 
-Note that primitive types can be used as nodes too. This is done to allow passing node indexes or
-IDs directly.
+### Default implementation of `HrwNode` trait
+
+Numeric primitive types can also be used as HRW nodes (`u8`, `u16`, `u32`, `u64`, `usize`, `i8`,
+`i16`, `i32`, `i64`, `isize`, `char`). This is done to allow passing node indexes or IDs directly.
+
+Additionally, mostly for testing purposes, `String`, `&str`, `&[u8]` do implement `HrwNode` trait as
+well.
 
 ``` rust
 use hrw_hash::{HrwNode, HrwNodes};
@@ -131,14 +146,37 @@ use hrw_hash::{HrwNode, HrwNodes};
 let nodes: Vec<String> = (0..10).map(|i| format!("node{}", i)).collect();
 let hrw = HrwNodes::new(nodes);
 let replicas = hrw.sorted(&42).take(3).collect::<Vec<_>>();
-assert_eq!(replicas, vec![&"node6", &"node0", &"node7"]);
+assert_eq!(replicas, vec![&"node3", &"node1", &"node5"]);
 
 // u16 as node
 let nodes: Vec<u16> = (0..10).map(|i| i).collect();
 let hrw = HrwNodes::new(nodes);
 let replicas = hrw.sorted(&42).take(3).collect::<Vec<_>>();
-assert_eq!(replicas, vec![&4, &5, &6]);
+assert_eq!(replicas, vec![&8, &4, &7]);
 ```
+
+### Custom hasher
+
+To give you full control over how values are hashed, you can specify custom hasher builder:
+
+``` rust
+// Assuming you have the following in your `Cargo.toml`:
+// twox-hash = { version = "2.1", features = ["std", "xxhash3_64"] }
+use twox_hash::XxHash3_64;
+use std::hash::BuildHasherDefault;
+use hrw_hash::{HrwNode, HrwNodes};
+
+// Pass in XXHash3_64 hasher builder.
+let nodes = (0..10).map(|i| i);
+let hrw = HrwNodes::with_build_hasher(BuildHasherDefault::<XxHash3_64>::default(), nodes);
+
+let replicas = hrw.sorted(&42).take(3).collect::<Vec<_>>();
+assert_eq!(replicas, vec![&1, &2, &7]);
+```
+
+Note: the default hasher (`rapidhash v.3`) is guaranteed to be stable across architectures, Rust
+versions, and crate updates. This means that the same key will always hash to the same value,
+regardless of the platform or Rust version used to compile the code.
 
 ## License
 
