@@ -101,12 +101,6 @@ nodes.push(MyNode::new(101, 20));
 
 let hrw = HrwNodes::new(nodes);
 
-println!("{:?}", hrw.sorted(&"key1").take(3).collect::<Vec<_>>());
-println!("{:?}", hrw.sorted(&"key2").take(3).collect::<Vec<_>>());
-println!("{:?}", hrw.sorted(&"key3").take(3).collect::<Vec<_>>());
-println!("{:?}", hrw.sorted(&"key4").take(3).collect::<Vec<_>>());
-println!("{:?}", hrw.sorted(&"key5").take(3).collect::<Vec<_>>());
-
 // Nodes `100` and `101` have higher capacity, so they will be
 // selected more often -- even though there are many other nodes.
 assert_eq!(
@@ -166,8 +160,9 @@ use twox_hash::XxHash3_64;
 use std::hash::BuildHasherDefault;
 use hrw_hash::{HrwNode, HrwNodes};
 
-// Pass in XXHash3_64 hasher builder.
 let nodes = (0..10).map(|i| i);
+
+// Pass in `XXHash3_64` hasher builder.
 let hrw = HrwNodes::with_build_hasher(BuildHasherDefault::<XxHash3_64>::default(), nodes);
 
 let replicas = hrw.sorted(&42).take(3).collect::<Vec<_>>();

@@ -6,10 +6,7 @@ mod hrw;
 
 use std::hash::Hash;
 
-pub use {
-    hasher::{DefaultHasher},
-    hrw::HrwNodes,
-};
+pub use {hasher::DefaultHasher, hrw::HrwNodes};
 
 /// Target node which will be used for the hashing.
 pub trait HrwNode: Hash + PartialEq + Eq {
