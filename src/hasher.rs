@@ -21,8 +21,8 @@ impl Hasher for DefaultHasher {
 }
 
 #[inline]
-pub(crate) fn merge(a: &u64, b: &u64) -> u64 {
-    let mut distance = *a ^ *b;
+pub const fn merge(a: u64, b: u64) -> u64 {
+    let mut distance = a ^ b;
     distance ^= distance >> 33;
     distance = distance.wrapping_mul(0xff51_afd7_ed55_8ccd);
     distance ^= distance >> 33;

@@ -59,7 +59,7 @@ where
             .iter()
             .map(|(node, node_hash)| {
                 let weight = node.capacity() as f64 / self.total_capacity as f64;
-                let hash = merge(node_hash, key_hash) as f64 / u64::MAX as f64;
+                let hash = merge(*node_hash, *key_hash) as f64 / u64::MAX as f64;
                 let score = Score((1.0 / -hash.ln()) * weight);
                 (score, node)
             })
